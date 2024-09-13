@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 5px;
+            font-size: 16px;
+        }
+        input[type="submit"] {
+            padding: 5px 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        a {
+            text-decoration: none;
+            color: #1a73e8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Session Management</h1>
+    <form action="{{ url_for('create_session') }}" method="post">
+        <input type="text" name="session_name" placeholder="Enter session name" required>
+        <input type="submit" value="Create Session">
+    </form>
+    <h2>Existing Sessions:</h2>
+    <ul>
+        {% for session_id, session_name in sessions.items() %}
+            <li><a href="{{ url_for('session_page', session_id=session_id) }}">{{ session_name }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

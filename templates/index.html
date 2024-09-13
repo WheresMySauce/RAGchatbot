@@ -1,0 +1,239 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Chatbot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel= "stylesheet" type= "text/css" href= "{{ url_for('static',filename='styles.css') }}">
+    <!-- <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+        }
+        .left-column, .right-column {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .left-column {
+            flex: 0 0 250px;
+            background-color: #1a237e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .left-column h2 {
+            text-align: center;
+        }
+        .right-column {
+            flex: 1;
+        }
+        .file-item {
+            margin-bottom: 10px;
+            background-color: #3949ab;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .file-item button {
+            background-color: #7986cb;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-right: 5px;
+        }
+        .file-item button:hover {
+            background-color: #5c6bc0;
+        }
+        #chat-messages {
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        .message {
+            max-width: 60%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #e5e5ea;
+        }
+        #file-upload {
+            display: none;
+        }
+        .file-upload-label {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4caf50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .file-upload-label:hover {
+            background-color: #45a049;
+        }
+        .chat-input-container {
+            display: flex;
+            margin-top: 10px;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+        }
+        #send-button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #send-button:hover {
+            background-color: #1976d2;
+        }
+        #file-list {
+            width: 100%;
+        }
+    </style> -->
+</head>
+<body>
+    <div class="left-column">
+        <h2>Your Documents</h2>
+        <label for="file-upload" class="file-upload-label">Upload File</label>
+        <input type="file" id="file-upload" accept=".pdf">
+        <div id="file-list"></div>
+    </div>
+    <div class="right-column">
+        <h2>Chat</h2>
+        <div id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static',filename='script.js') }}"> </script>
+
+    <!-- <script>
+        $(document).ready(function() {
+            $('#file-upload').change(function() {
+                uploadFile(this.files[0]);
+            });
+
+            $('#user-input').keypress(function(e) {
+                if(e.which == 13) {
+                    sendMessage();
+                    return false;
+                }
+            });
+        });
+
+        function uploadFile(file) {
+            var formData = new FormData();
+            formData.append('file', file);
+
+            $.ajax({
+                url: '/upload',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    if(response.success) {
+                        addFileToList(response.filename);
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                }
+            });
+        }
+
+        function addFileToList(filename) {
+            const fileId = `file-${filename.replace(/\./g, '-')}`;
+            $('#file-list').append(`
+                <div id="${fileId}" class="file-item">
+                    ${filename}
+                    <button onclick="summarize('${filename}')">Summarize</button>
+                    <button onclick="deleteFile('${filename}')">Delete</button>
+                </div>
+            `);
+        }
+
+        function summarize(filename) {
+            $.ajax({
+                url: '/summarize',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({filename: filename}),
+                success: function(response) {
+                    if (response.summary) {
+                        alert('Summary: ' + response.summary);
+                    } else {
+                        alert('Error: ' + response.error);
+                    }
+                }
+            });
+        }
+
+        function deleteFile(filename) {
+            if (confirm(`Are you sure you want to delete ${filename}?`)) {
+                $.ajax({
+                    url: '/delete',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({filename: filename}),
+                    success: function(response) {
+                        if (response.success) {
+                            $(`#file-${filename.replace(/\./g, '-')}`).remove();
+                        } else {
+                            alert('Error: ' + response.error);
+                        }
+                    }
+                });
+            }
+        }
+
+        function sendMessage() {
+            var message = $('#user-input').val();
+            if (message.trim() === '') return;
+
+            $('#chat-messages').append(`<div class="message user-message">${message}</div>`);
+            $('#user-input').val('');
+
+            $.ajax({
+                url: '/chat',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({question: message}),
+                success: function(response) {
+                    $('#chat-messages').append(`<div class="message bot-message">${response.answer}</div>`);
+                    $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
+                }
+            });
+        }
+    </script> -->
+</body>
+</html>
