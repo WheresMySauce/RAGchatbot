@@ -10,20 +10,28 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            font-size: 18px; /* Increased font size */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         h1 {
             color: #333;
         }
         form {
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         input[type="text"] {
-            padding: 5px;
-            font-size: 16px;
+            padding: 10px; /* Increased padding */
+            font-size: 18px; /* Increased font size */
+            margin-bottom: 10px;
         }
         input[type="submit"] {
-            padding: 5px 10px;
-            font-size: 16px;
+            padding: 10px 20px; /* Increased padding */
+            font-size: 18px; /* Increased font size */
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -32,13 +40,27 @@
         ul {
             list-style-type: none;
             padding: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         li {
             margin-bottom: 10px;
         }
-        a {
+        .session-button {
+            display: inline-block;
+            width: 200px; /* Fixed width */
+            height: 50px; /* Fixed height */
+            line-height: 50px; /* Center text vertically */
+            font-size: 18px; /* Increased font size */
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            cursor: pointer;
+            text-align: center;
             text-decoration: none;
-            color: #1a73e8;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -51,7 +73,7 @@
     <h2>Existing Sessions:</h2>
     <ul>
         {% for session_id, session_name in sessions.items() %}
-            <li><a href="{{ url_for('session_page', session_id=session_id) }}">{{ session_name }}</a></li>
+            <li><a class="session-button" href="{{ url_for('session_page', session_id=session_id) }}">{{ session_name }}</a></li>
         {% endfor %}
     </ul>
 </body>

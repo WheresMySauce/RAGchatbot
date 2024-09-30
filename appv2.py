@@ -196,7 +196,10 @@ def session_page(session_id):
     if session_id not in sessions:
         return redirect(url_for('index'))
     session['current_session'] = session_id
-    return render_template('index_allin.html', session_id=session_id, session_name=sessions[session_id])
+    # Load the files for this session
+    file_list = [f.split('_', 1)[1] for f in os.listdir(UPLOAD_FOLDER) if f.startswith(f"{session_id}_")]
+    print(file_list)
+    return render_template('index_allin.html', session_id=session_id, file_list=file_list)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():

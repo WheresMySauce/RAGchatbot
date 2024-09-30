@@ -124,7 +124,15 @@
         <h2>Your Documents</h2>
         <label for="file-upload" class="file-upload-label">Upload File</label>
         <input type="file" id="file-upload" accept=".pdf">
-        <div id="file-list"></div>
+        <div id="file-list">
+            {% for file in file_list %}
+            <div id="file-{{ file | replace('.', '-') }}" class="file-item">
+                {{ file }}
+                <button onclick="summarize('{{ file }}')">Summarize</button>
+                <button onclick="deleteFile('{{ file }}')">Delete</button>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     <div class="right-column">
         <h2>Chat</h2>
