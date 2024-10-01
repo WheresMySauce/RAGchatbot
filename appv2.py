@@ -131,10 +131,6 @@ def load_vector_store_and_qa(session_id, question):
 app = Flask(__name__)
 app.secret_key = '123'  # Set a secret key for sessions
 
-UPLOAD_FOLDER = './uploads'
-SUMMARY_FOLDER = './summaries'
-ALLOWED_EXTENSIONS = {'pdf'}
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['SUMMARY_FOLDER'] = SUMMARY_FOLDER
 
@@ -180,6 +176,9 @@ def load_summaries():
 # Load existing summaries when the app starts
 load_summaries()
 
+# Add pre-loaded sessions manually here
+sessions['1'] = "COVID-19 Research On Education"
+# sessions['2'] = "Preloaded Session 2"
 @app.route('/')
 def index():
     return render_template('session_management.html', sessions=sessions)
