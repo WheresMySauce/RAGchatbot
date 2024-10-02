@@ -33,11 +33,24 @@
             flex: 1;
         }
         .file-item {
-            margin-bottom: 10px;
-            background-color: #3949ab;
             padding: 10px;
-            border-radius: 5px;
-            width: 90%;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .file-action {
+            padding: 5px 10px;
+            background-color: #f0f0f0;
+            border: none;
+            cursor: pointer;
         }
         .file-item button {
             background-color: #7986cb;
@@ -79,15 +92,13 @@
             display: none;
         }
         .file-upload-label {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #4caf50;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            text-align: center;
-            margin-bottom: 20px;
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #4caf50;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
         }
         .file-upload-label:hover {
             background-color: #45a049;
@@ -117,19 +128,73 @@
         #file-list {
             width: 100%;
         }
+            /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover, .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="left-column">
         <h2>Your Documents</h2>
-        <label for="file-upload" class="file-upload-label">Upload File</label>
-        <input type="file" id="file-upload" accept=".pdf">
+        <!-- <label for="file-upload" class="file-upload-label">Upload File</label>
+        <input type="file" id="file-upload" accept=".pdf"> -->
+            <!-- Button to Open the Modal -->
+        <button id="uploadBtn" class="file-upload-label">Upload File or Submit Link</button>
+        <!-- The Modal -->
+        <div id="uploadModal" class="modal">
+            <!-- Modal content -->
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Upload PDF or Enter Link</h3>
+                <div style="margin-bottom: 20px;">
+                    <!-- File Upload -->
+                    <label for="file-upload-modal" class="file-upload-label">Choose PDF</label>
+                    <input type="file" id="file-upload-modal" accept=".pdf" style="display: none;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <!-- Link Input -->
+                    <input type="text" id="web-url-modal" placeholder="Enter Website URL" style="width: 80%;">
+                    <button onclick="submitUrl()">Submit URL</button>
+                </div>
+            </div>
+        </div>
         <div id="file-list">
             {% for file in file_list %}
-            <div id="file-{{ file | replace('.', '-') }}" class="file-item">
-                {{ file }}
-                <button onclick="summarize('{{ file }}')">Summarize</button>
-                <button onclick="deleteFile('{{ file }}')">Delete</button>
+            <div id="fileId" class="file-item">
+                <div class="file-name">{{ file }}</div>
+                <div class="file-actions">
+                    <button class="file-action" onclick="summarize('{{ file }}')">Summarize</button>
+                    <button class="file-action" onclick="deleteFile('{{ file }}')">Delete</button>
+                </div>
             </div>
             {% endfor %}
         </div>
@@ -156,37 +221,115 @@
                 }
             });
         });
+        // Get the modal
+        var modal = document.getElementById("uploadModal");
+        // Get the button that opens the modal
+        var btn = document.getElementById("uploadBtn");
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+        // Open the modal when clicking the upload button
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
+        // Close the modal
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+        // Handle file upload
+        document.getElementById("file-upload-modal").onchange = function() {
+            var file = this.files[0];
+            if (file) {
+                var formData = new FormData();
+                formData.append('file', file);
 
-        function uploadFile(file) {
-            var formData = new FormData();
-            formData.append('file', file);
+                $.ajax({
+                    url: '/upload',  // Backend route for uploading files
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        if (response.success) {
+                            addFileToList(response.filename, response.filename);
+                        } else {
+                            alert('Error: ' + response.error);
+                        }
+                    }
+                });
+                modal.style.display = "none";  // Close modal after upload
+            }
+        }
+
+        // Handle URL submission
+        function submitUrl() {
+            url = document.getElementById("web-url-modal").value;
+            if (url.trim() === '') return;
 
             $.ajax({
-                url: '/upload',
+                url: '/process-url',  // Backend route for processing URLs
                 type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
+                contentType: 'application/json',
+                data: JSON.stringify({ url: url }),
                 success: function(response) {
-                    if(response.success) {
-                        addFileToList(response.filename);
+                    if (response.success) {
+                        addFileToList(response.filename, response.url);
                     } else {
                         alert('Error: ' + response.error);
                     }
                 }
             });
+            modal.style.display = "none";  // Close modal after submission
         }
 
-        function addFileToList(filename) {
+        // Add the uploaded or URL-submitted file to the list dynamically
+        function addFileToList(filename, rawName) {
             const fileId = `file-${filename.replace(/\./g, '-')}`;
+            console.log("saved id: " + fileId);
             $('#file-list').append(`
                 <div id="${fileId}" class="file-item">
-                    ${filename}
-                    <button onclick="summarize('${filename}')">Summarize</button>
-                    <button onclick="deleteFile('${filename}')">Delete</button>
+                    <div class="file-name">${rawName}</div>
+                    <div class="file-actions">
+                        <button class="file-action" onclick="summarize('${filename}')">Summarize</button>
+                        <button class="file-action" onclick="deleteFile('${filename}')")">Delete</button>
+                    </div>
                 </div>
             `);
         }
+        // function uploadFile(file) {
+        //     var formData = new FormData();
+        //     formData.append('file', file);
+
+        //     $.ajax({
+        //         url: '/upload',
+        //         type: 'POST',
+        //         data: formData,
+        //         contentType: false,
+        //         processData: false,
+        //         success: function(response) {
+        //             if(response.success) {
+        //                 addFileToList(response.filename);
+        //             } else {
+        //                 alert('Error: ' + response.error);
+        //             }
+        //         }
+        //     });
+        // }
+
+        // function addFileToList(filename) {
+        //     const fileId = `file-${filename.replace(/\./g, '-')}`;
+        //     $('#file-list').append(`
+        //         <div id="${fileId}" class="file-item">
+        //             ${filename}
+        //             <button onclick="summarize('${filename}')">Summarize</button>
+        //             <button onclick="deleteFile('${filename}')">Delete</button>
+        //         </div>
+        //     `);
+        // }
 
         function summarize(filename) {
             $.ajax({
@@ -213,6 +356,7 @@
                     data: JSON.stringify({filename: filename}),
                     success: function(response) {
                         if (response.success) {
+                            console.log("delete  id: " + filename.replace(/\./g, '-'));
                             $(`#file-${filename.replace(/\./g, '-')}`).remove();
                         } else {
                             alert('Error: ' + response.error);

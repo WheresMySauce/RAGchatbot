@@ -6,9 +6,11 @@ import json
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 import PyPDF2
+from bs4 import BeautifulSoup
+import requests
 from dotenv import load_dotenv
 # from langchain_community.vectorstores.chroma import Chroma
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader, TextLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.output_parsers import StrOutputParser
@@ -33,7 +35,11 @@ def extract_text_from_pdf(pdf_path):
         for page in reader.pages:
             text += page.extract_text()
     return text
-
+def extract_text_from_url(url):
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    text = soup.get_text()
+    return text
 def chunk_text(text, chunk_size=2000):
     words = text.split()
     return [' '.join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
@@ -69,8 +75,10 @@ def summarize_pdf(pdf_path):
     model_name = "csebuetnlp/mT5_multilingual_XLSum"
     tokenizer = AutoTokenizer.from_pretrained(model_name, legacy=True)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
-
-    text = extract_text_from_pdf(pdf_path)
+    if pdf_path.endswith('.pdf'):
+        text = extract_text_from_pdf(pdf_path)
+    else:
+        text = pdf_path
     chunks = chunk_text(text)
     
     summaries = []
@@ -83,8 +91,11 @@ def summarize_pdf(pdf_path):
 
 # --------------------------------------PREPARE VECTOR STORE--------------------------------------
 def process_pdf_and_store(session_id):
-    loader = DirectoryLoader(pdf_data_path, glob=f"{session_id}_*.pdf", loader_cls=PyPDFLoader)
-    docs = loader.load()
+    pdf_loader = DirectoryLoader(pdf_data_path, glob=f"{session_id}_*.pdf", loader_cls=PyPDFLoader)
+    pdf_docs = pdf_loader.load()
+    text_loader = DirectoryLoader(pdf_data_path, glob=f"{session_id}_*.txt", loader_cls=TextLoader)
+    text_docs = text_loader.load()
+    docs = pdf_docs + text_docs
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
 
@@ -235,6 +246,35 @@ def upload_file():
         process_pdf_and_store(session_id)  # Process and store the uploaded PDF
         return jsonify({'success': 'File uploaded and summarized successfully', 'filename': filename})
     return jsonify({'error': 'Invalid file type'})
+
+# Route for processing URLs and saving as .txt
+@app.route('/process-url', methods=['POST'])
+def process_url():
+    session_id = session.get('current_session')
+    
+    if not session_id:
+        return jsonify({'error': 'No active session'})
+
+    data = request.get_json()
+    url = data.get('url')
+    if not url:
+        return jsonify({'error': 'No URL provided'})
+
+    # Extract content from URL and summarize
+    content = extract_text_from_url(url)
+    # Save the webpage content as a .txt file
+    text_filename = f"{session_id}_{secure_filename(url)}.txt"
+    text_filepath = os.path.join(app.config['UPLOAD_FOLDER'], text_filename)
+    with open(text_filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    # print(content)
+    summary = summarize_pdf(content)
+
+    # Save the summary as a .txt file
+    filename = f"{secure_filename(url)}.txt"
+    save_summary(session_id, filename, summary)
+    process_pdf_and_store(session_id)  # Process and store the uploaded PDF
+    return jsonify({'success': 'URL processed successfully', 'filename': filename, 'url': url})
 
 @app.route('/summarize', methods=['POST'])
 def summarize():
