@@ -92,13 +92,13 @@
             display: none;
         }
         .file-upload-label {
-        display: inline-block;
-        padding: 10px 15px;
-        background-color: #4caf50;
-        color: white;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s;
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4caf50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
         }
         .file-upload-label:hover {
             background-color: #45a049;
@@ -141,49 +141,114 @@
         }
 
         .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 12px;
             width: 50%;
+            box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            position: relative; 
         }
 
         .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
+            color: #333;
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
         }
 
-        .close:hover, .close:focus {
-            color: black;
-            text-decoration: none;
+        .close:hover {
+            color: #ff0000;
+        }
+
+        h2, h3 {
+            font-family: 'Arial', sans-serif;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .upload-button {
+            display: inline-block;
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 6px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+        }
+        .upload-button:hover {
+            background-color: #218838;
+        }
+
+        .input-url {
+            padding: 12px;
+            width: 100%;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .submit-button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+        }
+
+        .submit-button:hover {
+            background-color: #218838;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 90%;
+                padding: 20px;
+            }
+
+            .upload-section, .link-section {
+                width: 100%;
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="left-column">
-        <h2>Your Documents</h2>
+        <h2 style="color: white;">Your Documents</h2>
         <!-- <label for="file-upload" class="file-upload-label">Upload File</label>
         <input type="file" id="file-upload" accept=".pdf"> -->
             <!-- Button to Open the Modal -->
-        <button id="uploadBtn" class="file-upload-label">Upload File or Submit Link</button>
+        <button id="uploadBtn" class="file-upload-label" style="margin-bottom: 10px;">Add source</button>
         <!-- The Modal -->
         <div id="uploadModal" class="modal">
             <!-- Modal content -->
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h3>Upload PDF or Enter Link</h3>
-                <div style="margin-bottom: 20px;">
-                    <!-- File Upload -->
-                    <label for="file-upload-modal" class="file-upload-label">Choose PDF</label>
-                    <input type="file" id="file-upload-modal" accept=".pdf" style="display: none;">
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <!-- Link Input -->
-                    <input type="text" id="web-url-modal" placeholder="Enter Website URL" style="width: 80%;">
-                    <button onclick="submitUrl()">Submit URL</button>
+                <h2 style="text-align: center; margin-bottom: 20px;">Upload Document or Submit Link</h2>
+                <div style="display: flex; justify-content: space-between;">
+                    <!-- Left side: File Upload -->
+                    <div class="upload-section" style="width: 45%; text-align: center;">
+                        <h3 style="margin-bottom: 15px;">Upload document</h3>
+                        <label for="file-upload-modal" class="upload-button">Choose file</label>
+                        <input type="file" id="file-upload-modal" accept=".pdf" style="display: none;">
+                        <p style="font-size: 14px; color: #888; margin-top: 10px;">Allowed file extension: .pdf</p>
+                    </div>
+                    <!-- Right side: Link Input -->
+                    <div class="link-section" style="width: 45%; text-align: center;">
+                        <h3 style="margin-bottom: 15px;">Submit Website Link</h3>
+                        <input type="text" id="web-url-modal" style="width: 90%;" placeholder="Enter Website URL" class="input-url">
+                        <button class="submit-button" onclick="submitUrl()">Submit Link</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -289,7 +354,6 @@
         // Add the uploaded or URL-submitted file to the list dynamically
         function addFileToList(filename, rawName) {
             const fileId = `file-${filename.replace(/\./g, '-')}`;
-            console.log("saved id: " + fileId);
             $('#file-list').append(`
                 <div id="${fileId}" class="file-item">
                     <div class="file-name">${rawName}</div>
@@ -356,7 +420,6 @@
                     data: JSON.stringify({filename: filename}),
                     success: function(response) {
                         if (response.success) {
-                            console.log("delete  id: " + filename.replace(/\./g, '-'));
                             $(`#file-${filename.replace(/\./g, '-')}`).remove();
                         } else {
                             alert('Error: ' + response.error);

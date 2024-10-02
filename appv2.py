@@ -200,6 +200,14 @@ def create_session():
     session_id = str(len(sessions) + 1)
     sessions[session_id] = session_name
     return redirect(url_for('index'))
+@app.route('/delete_session', methods=['POST'])
+def delete_session():
+    data = request.json
+    session_id = data.get('session_id')
+    if session_id in sessions:
+        del sessions[session_id]
+        return jsonify({'success': True})
+    return jsonify({'success': False})
 
 @app.route('/session/<session_id>')
 def session_page(session_id):
