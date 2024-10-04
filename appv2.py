@@ -1,102 +1,88 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for #server
 from werkzeug.utils import secure_filename 
 import os
-import re
-import json
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import torch
-import PyPDF2
-from bs4 import BeautifulSoup
-import requests
+import shutil
+import asyncio
+from typing import List
 from dotenv import load_dotenv
-# from langchain_community.vectorstores.chroma import Chroma
-from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader, TextLoader
+from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader, TextLoader, WebBaseLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter, CharacterTextSplitter
+from langchain.chains.combine_documents.reduce import acollapse_docs, split_list_of_docs
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
-from langchain.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_chroma import Chroma
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from openai import OpenAI
+
 load_dotenv() #load environment variableS (API KEYS)
 openai_api_key = os.getenv("OPENAI_API_KEY")
-pdf_data_path = "./uploads" #uploaded pdf data path
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
 UPLOAD_FOLDER = './uploads'
 SUMMARY_FOLDER = './summaries'
 ALLOWED_EXTENSIONS = {'pdf'}
 # --------------------------------------SUMMARIZE .PDF FILE--------------------------------------
-WHITESPACE_HANDLER = lambda k: re.sub('\s+', ' ', re.sub('\n+', ' ', k.strip()))
-
-def extract_text_from_pdf(pdf_path):
-    with open(pdf_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text()
-    return text
-def extract_text_from_url(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    text = soup.get_text()
-    return text
-def chunk_text(text, chunk_size=2000):
-    words = text.split()
-    return [' '.join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
-
-def summarize_chunk(chunk, tokenizer, model, device):
-    input_ids = tokenizer(
-        [WHITESPACE_HANDLER(chunk)],
-        return_tensors="pt",
-        padding="max_length",
-        truncation=True,
-        max_length=512
-    )["input_ids"].to(device)
-
-    output_ids = model.generate(
-        input_ids=input_ids,
-        max_length=256,
-        min_length=50,
-        no_repeat_ngram_size=2,
-        num_beams=4
-    )[0]
-
-    return tokenizer.decode(
-        output_ids,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=False
+def map_reduce_parameters():
+    map_prompt = ChatPromptTemplate.from_messages(
+        [("system", "Write a concise summary of the following:\\n\\n{context}. Your answer language match with the input language.")],
     )
+    map_chain = map_prompt | llm | StrOutputParser()
+    reduce_template = """
+    The following is a set of summaries:
+    {docs}
+    Take these and distill it into a final, consolidated summary
+    of the main themes. Your answer language match with the input language.
+    """
+    reduce_prompt = ChatPromptTemplate([("human", reduce_template)])
+    reduce_chain = reduce_prompt | llm | StrOutputParser()
+    return map_chain, reduce_chain
 
-def summarize_pdf(pdf_path):
-    # Check if CUDA is available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Using device: {device}")
-
-    model_name = "csebuetnlp/mT5_multilingual_XLSum"
-    tokenizer = AutoTokenizer.from_pretrained(model_name, legacy=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
-    if pdf_path.endswith('.pdf'):
-        text = extract_text_from_pdf(pdf_path)
+async def summarize_content(path):
+    map_chain, reduce_chain = map_reduce_parameters()
+    print(f"Loading content from {path}...")
+    if path.endswith('.pdf'):
+        loader = PyPDFLoader(path)
+    elif path.startswith('http'):
+        loader = WebBaseLoader(path)
     else:
-        text = pdf_path
-    chunks = chunk_text(text)
-    
-    summaries = []
-    for chunk in chunks:
-        summary = summarize_chunk(chunk, tokenizer, model, device)
-        summaries.append(summary)
-    
-    return " ".join(summaries)
+        raise ValueError("Unsupported document type. Please provide a PDF file path or a URL.")
+    docs = loader.load()
+    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+        chunk_size=1024, chunk_overlap=0
+    )
+    split_docs = text_splitter.split_documents(docs)
+    print(f"Generated {len(split_docs)} documents.")
 
-
+    doc_summaries = []
+    # Create a list of tasks
+    tasks = [map_chain.ainvoke(doc.page_content) for doc in split_docs]
+    doc_summaries = await asyncio.gather(*tasks)
+    # Step 3: Combine summaries into a final summary (reduce step)
+    combined_summary = await reduce_chain.ainvoke("\n".join(doc_summaries))
+    return combined_summary
+def run_summarize_pdf(file_path):
+    summary = asyncio.run(summarize_content(file_path))
+    return summary
 # --------------------------------------PREPARE VECTOR STORE--------------------------------------
 def process_pdf_and_store(session_id):
-    pdf_loader = DirectoryLoader(pdf_data_path, glob=f"{session_id}_*.pdf", loader_cls=PyPDFLoader)
+    pdf_loader = DirectoryLoader(UPLOAD_FOLDER, glob=f"{session_id}_*.pdf", loader_cls=PyPDFLoader)
     pdf_docs = pdf_loader.load()
-    text_loader = DirectoryLoader(pdf_data_path, glob=f"{session_id}_*.txt", loader_cls=TextLoader)
-    text_docs = text_loader.load()
-    docs = pdf_docs + text_docs
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=200)
+    
+    web_address = []
+    #Read the web address from the text file then load the web page using WebBaseLoader
+    for file in os.listdir(UPLOAD_FOLDER):
+        if file.endswith(".txt") and file.startswith(f"{session_id}_"):
+            with open(os.path.join(UPLOAD_FOLDER, file), 'r') as f:
+                url = f.read()
+                web_address.append(url)
+
+    web_loader = WebBaseLoader(web_address)
+    web_docs = web_loader.load()
+    docs = pdf_docs + web_docs
+
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
     splits = text_splitter.split_documents(docs)
 
     # Create vector store
@@ -104,7 +90,7 @@ def process_pdf_and_store(session_id):
                                         embedding=OpenAIEmbeddings(),
                                         persist_directory=f"./vectorstore_{session_id}")
     
-    # vectorstore.persist()
+    # vectorstore.persist() auto
 
 # --------------------------------------Q&A RETRIEVER--------------------------------------
 # Load the vector store and do Q&A
@@ -118,7 +104,7 @@ def load_vector_store_and_qa(session_id, question):
     retriever = vectorstore.as_retriever()
     # Define new custom template
     new_template = """You are an expert assistant specializing in providing detailed, clear, and accurate answers.
-    Please consider all of the provided context carefully, and be sure to answer in full sentences.
+    Please consider all of the provided context carefully, and be sure to answer in full sentences. Your answer language should match the question language.
     If you don't know the answer, it's okay to acknowledge that.
     Question: {question}
     Context: {context}
@@ -151,7 +137,9 @@ os.makedirs(SUMMARY_FOLDER, exist_ok=True)
 # In-memory storage for summaries and sessions
 summaries = {}
 sessions = {}
-
+# Add pre-loaded sessions manually here
+sessions['1'] = "COVID-19 Research On Education"
+# sessions['2'] = "Preloaded Session 2"
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -183,13 +171,9 @@ def load_summaries():
                     summaries[session_id][pdf_filename] = f.read()
             except Exception as e:
                 print(f"Error loading summary for file {filename}: {str(e)}")
-
 # Load existing summaries when the app starts
 load_summaries()
 
-# Add pre-loaded sessions manually here
-sessions['1'] = "COVID-19 Research On Education"
-# sessions['2'] = "Preloaded Session 2"
 @app.route('/')
 def index():
     return render_template('session_management.html', sessions=sessions)
@@ -204,10 +188,19 @@ def create_session():
 def delete_session():
     data = request.json
     session_id = data.get('session_id')
+    print(session_id)
     if session_id in sessions:
         del sessions[session_id]
-        return jsonify({'success': True})
-    return jsonify({'success': False})
+        # Remove vectorstore directory
+        shutil.rmtree(f"./vectorstore_{session_id}", ignore_errors=True)
+        # Delete all files and summaries for this session
+        for f in os.listdir(UPLOAD_FOLDER):
+            if f.startswith(f"{session_id}_"):
+                os.remove(os.path.join(UPLOAD_FOLDER, f))
+        for f in os.listdir(SUMMARY_FOLDER):
+            if f.startswith(f"{session_id}_"):
+                os.remove(os.path.join(SUMMARY_FOLDER, f))
+    return jsonify({'success': True})
 
 @app.route('/session/<session_id>')
 def session_page(session_id):
@@ -224,7 +217,6 @@ def upload_file():
     session_id = session.get('current_session')
     if not session_id:
         return jsonify({'error': 'No active session'})
-    
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'})
     file = request.files['file']
@@ -248,7 +240,7 @@ def upload_file():
         file.save(file_path)
         
         # Generate and store summary
-        summary = summarize_pdf(file_path)
+        summary = run_summarize_pdf(file_path)
         save_summary(session_id, filename, summary)
 
         process_pdf_and_store(session_id)  # Process and store the uploaded PDF
@@ -259,7 +251,6 @@ def upload_file():
 @app.route('/process-url', methods=['POST'])
 def process_url():
     session_id = session.get('current_session')
-    
     if not session_id:
         return jsonify({'error': 'No active session'})
 
@@ -267,21 +258,15 @@ def process_url():
     url = data.get('url')
     if not url:
         return jsonify({'error': 'No URL provided'})
-
-    # Extract content from URL and summarize
-    content = extract_text_from_url(url)
-    # Save the webpage content as a .txt file
+    summary = run_summarize_pdf(url)
+    # Save the webpage name
     text_filename = f"{session_id}_{secure_filename(url)}.txt"
     text_filepath = os.path.join(app.config['UPLOAD_FOLDER'], text_filename)
     with open(text_filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
-    # print(content)
-    summary = summarize_pdf(content)
-
-    # Save the summary as a .txt file
+        f.write(url)
     filename = f"{secure_filename(url)}.txt"
     save_summary(session_id, filename, summary)
-    process_pdf_and_store(session_id)  # Process and store the uploaded PDF
+    process_pdf_and_store(session_id)  # Process and store
     return jsonify({'success': 'URL processed successfully', 'filename': filename, 'url': url})
 
 @app.route('/summarize', methods=['POST'])
