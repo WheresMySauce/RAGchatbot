@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Management</title>
+    <link href= "{{ url_for('static',filename='styles_session.css') }}" rel = "stylesheet">
+
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Chatbot</h1>
+        
+        <h2 class="section-title">Your Sessions</h2>
+        <div class="notebooks">
+            <div class="notebook new-notebook" onclick="openModal()">
+                <div class="new-notebook-icon">+</div>
+                <h2>New Session</h2>
+            </div>
+            
+            {% for session_id, session_name in sessions.items() %}
+                {% if loop.index > 1 %}
+                <div class="notebook" onclick="openSession('{{ session_id }}')">
+                    <h2>{{ session_name }}</h2>
+                    <button class="delete-btn" onclick="deleteSession(event, '{{ session_id }}')"></button>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <h2 class="section-title">Example Sessions</h2>
+        <div class="notebooks">
+            {% for session_id, session_name in sessions.items() %}
+                {% if loop.index == 1 %}
+                <div class="notebook" onclick="openSession('{{ session_id }}')">
+                    <h2>{{ session_name }}</h2>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="createSessionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('createSessionModal')">&times;</span>
+            <h2>Create New Session</h2>
+            <form action="{{ url_for('create_session') }}" method="post">
+                <input type="text" name="session_name" style="width: 80%;" placeholder="Enter session name" required>
+                <button type="submit">Create Session</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="deleteSessionModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('deleteSessionModal')">&times;</span>
+            <h2>Delete Session</h2>
+            <p>Are you sure you want to delete this session?</p>
+            <button onclick="confirmDelete()">Delete</button>
+            <button onclick="closeModal('deleteSessionModal')">Cancel</button>
+        </div>
+    </div>
+
+
+    <script src="{{url_for('static', filename='script_session.js')}}"></script>
+</body>
+</html>
