@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Session Management</title>
     <link href= "{{ url_for('static',filename='styles_session.css') }}" rel = "stylesheet">
-
 </head>
 <body>
     <div class="container">
         <h1>Welcome to the Chatbot</h1>
-        
         <h2 class="section-title">Your Sessions</h2>
         <div class="notebooks">
             <div class="notebook new-notebook" onclick="openModal()">
@@ -27,7 +25,6 @@
                 {% endif %}
             {% endfor %}
         </div>
-
         <h2 class="section-title">Example Sessions</h2>
         <div class="notebooks">
             {% for session_id, session_name in sessions.items() %}
@@ -40,6 +37,8 @@
         </div>
     </div>
 
+    <!-- Cửa sổ hiện lên -->
+
     <div id="createSessionModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('createSessionModal')">&times;</span>
@@ -50,7 +49,7 @@
             </form>
         </div>
     </div>
-
+    <!-- Cửa sổ hiện lên xóa session-->
     <div id="deleteSessionModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('deleteSessionModal')">&times;</span>

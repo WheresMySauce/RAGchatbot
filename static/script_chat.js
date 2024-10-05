@@ -41,8 +41,8 @@ document.getElementById("file-upload-modal").onchange = function() {
             type: 'POST',
             data: formData,
             contentType: false,
-            processData: false,
-            success: function(response) {
+            processData: false, // xong phần gửi về app.py
+            success: function(response) { // lúc app.py gửi  dữ liệu về lại 
                 if (response.success) {
                     addFileToList(response.filename, response.filename);
                 } else {
@@ -63,8 +63,8 @@ function submitUrl() {
         url: '/process-url',  // Backend route for processing URLs
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ url: url }),
-        success: function(response) {
+        data: JSON.stringify({ url: url }),// xong phần gửi về app.py
+        success: function(response) { //làm gì khi nhận lại kết quả 
             if (response.success) {
                 addFileToList(response.filename, response.url);
             } else {
