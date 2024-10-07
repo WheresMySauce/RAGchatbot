@@ -21,24 +21,29 @@ function deleteSession(event, sessionId) {
 //confirm xóa session
 function confirmDelete() {
     if (sessionToDelete) {
-        fetch("{{ url_for('delete_session') }}", {
+        fetch("/delete_session", {  // xai route delete_session,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ session_id: sessionToDelete }),
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 location.reload();
             } else {
-                alert('Failed to delete session');
+                alert('Failed to delete session: ' + (data.error || 'Unknown error'));
             }
         })
         .catch((error) => {
             console.error('Error:', error);
-            alert('An error occurred while deleting the session');
+            alert('An error occurred while deleting the session: ' + error.message);
         });
     }
     closeModal('deleteSessionModal');
