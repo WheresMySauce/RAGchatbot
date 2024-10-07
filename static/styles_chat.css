@@ -2,124 +2,140 @@ body {
     display: flex;
     height: 100vh;
     margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f0f4f8;
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #f5f7fa;
 }
+
 .left-column, .right-column {
     padding: 20px;
     overflow-y: auto;
 }
+
 .left-column {
-    flex: 0 0 250px;
-    background-color: #1a237e;
+    flex: 0 0 300px;
+    background-color: #2c3e50;
     color: white;
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
+
 .left-column h2 {
     text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
 }
+
 .right-column {
     flex: 1;
+    display: flex;
+    flex-direction: column;
 }
+
 .file-item {
-    padding: 10px;
-    border: 1px solid #ccc;
-    margin-bottom: 10px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
+
+.file-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 .file-name {
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     word-break: break-word;
+    color: #34495e;
 }
+
 .file-actions {
     display: flex;
     gap: 10px;
 }
+
 .file-action {
-    padding: 5px 10px;
-    background-color: #f0f0f0;
-    border: none;
-    cursor: pointer;
-}
-.file-item button {
-    background-color: #7986cb;
-    border: none;
+    padding: 8px 12px;
+    background-color: #3498db;
     color: white;
-    padding: 5px 10px;
-    border-radius: 3px;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.3s;
-    margin-right: 5px;
 }
-.file-item button:hover {
-    background-color: #5c6bc0;
+
+.file-action:hover {
+    background-color: #2980b9;
 }
+
 #chat-messages {
-    height: calc(100vh - 200px);
+    flex-grow: 1;
     overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin-bottom: 10px;
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    margin-bottom: 20px;
     background-color: white;
-    border-radius: 5px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
+
 .message {
-    max-width: 60%;
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 10px;
+    max-width: 70%;
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    border-radius: 18px;
+    line-height: 1.4;
 }
+
 .user-message {
-    background-color: #dcf8c6;
+    background-color: #3498db;
+    color: white;
     align-self: flex-end;
     margin-left: auto;
 }
+
 .bot-message {
-    background-color: #e5e5ea;
+    background-color: #ecf0f1;
+    color: #2c3e50;
 }
-#file-upload {
-    display: none;
-}
-.file-upload-label {
-    display: inline-block;
-    padding: 10px 15px;
-    background-color: #4caf50;
-    color: white;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-.file-upload-label:hover {
-    background-color: #45a049;
-}
+
 .chat-input-container {
     display: flex;
-    margin-top: 10px;
+    margin-top: 20px;
 }
+
 #user-input {
     flex-grow: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px 0 0 5px;
+    padding: 12px 15px;
+    border: 1px solid #bdc3c7;
+    border-radius: 25px 0 0 25px;
+    font-size: 16px;
 }
+
 #send-button {
-    padding: 10px 20px;
-    background-color: #2196f3;
+    padding: 12px 25px;
+    background-color: #2ecc71;
     color: white;
     border: none;
-    border-radius: 0 5px 5px 0;
+    border-radius: 0 25px 25px 0;
     cursor: pointer;
     transition: background-color 0.3s;
+    font-size: 16px;
 }
+
 #send-button:hover {
-    background-color: #1976d2;
+    background-color: #27ae60;
 }
+
 #file-list {
     width: 100%;
 }
-    /* Modal Styling */
+
 .modal {
     display: none;
     position: fixed;
@@ -128,7 +144,7 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
@@ -140,54 +156,96 @@ body {
     box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
-    position: relative; 
+    position: relative;
 }
 
 .close {
-    color: #333;
+    color: #7f8c8d;
     position: absolute;
     top: 15px;
     right: 20px;
     font-size: 24px;
     cursor: pointer;
+    transition: color 0.3s;
 }
 
 .close:hover {
-    color: #ff0000;
+    color: #c0392b;
 }
 
 h2, h3 {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Roboto', sans-serif;
     font-weight: bold;
-    color: #333;
+    color: #2c3e50;
+}
+#uploadBtn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+#uploadBtn:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#uploadBtn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#uploadBtn::before {
+    content: "+";
+    font-size: 20px;
+    margin-right: 8px;
 }
 
 .upload-button {
     display: inline-block;
     padding: 12px 20px;
-    background-color: #007bff;
+    background-color: #3498db;
     color: white;
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     font-size: 16px;
+    text-align: center;
 }
+
 .upload-button:hover {
-    background-color: #218838;
+    background-color: #2980b9;
 }
 
 .input-url {
     padding: 12px;
     width: 100%;
-    border: 2px solid #ccc;
+    border: 2px solid #bdc3c7;
     border-radius: 6px;
     font-size: 16px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+.input-url:focus {
+    border-color: #3498db;
+    outline: none;
 }
 
 .submit-button {
     padding: 12px 20px;
-    background-color: #007bff;
+    background-color: #2ecc71;
     color: white;
     border-radius: 6px;
     border: none;
@@ -197,10 +255,19 @@ h2, h3 {
 }
 
 .submit-button:hover {
-    background-color: #218838;
+    background-color: #27ae60;
 }
 
 @media (max-width: 768px) {
+    body {
+        flex-direction: column;
+    }
+
+    .left-column {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
     .modal-content {
         width: 90%;
         padding: 20px;

@@ -4,45 +4,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Chatbot</title>
+    <title>{{ session_name }}</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="{{ url_for('static', filename='styles_chat.css') }}" rel="stylesheet">
 </head>
 <body>
     <div class="left-column">
-        <h2 style="color: white;">Your Documents</h2>
-        <!-- Button to Open the Modal -->
-        <button id="uploadBtn" class="file-upload-label" style="margin-bottom: 10px;">Add source</button>
+        <h2 style="color: white;">Tài liệu</h2>
+        <!-- Nút mở cửa sổ thêm nguồn-->
+        <button id="uploadBtn" class="file-upload-label" style="margin-bottom: 10px;">Thêm nguồn</button>
         <!-- The Modal = cửa sổ  -->
         <div id="uploadModal" class="modal">
-            <!-- Modal content -->
+            <!-- Các thành phần của cửa sổ, 0 liên quan đến trang wweb chính -->
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h2 style="text-align: center; margin-bottom: 20px;">Upload Document or Submit Link</h2>
+                <h2 style="text-align: center; margin-bottom: 20px;">Tài lên tệp .pdf hoặc sử dụng đường dẫn website</h2>
                 <div style="display: flex; justify-content: space-between;">
-                    <!-- Left side: File Upload -->
+                    <!-- Bên trái: tải file pdf -->
                     <div class="upload-section" style="width: 45%; text-align: center;">
-                        <h3 style="margin-bottom: 15px;">Upload document</h3>
-                        <label for="file-upload-modal" class="upload-button">Choose file</label>
+                        <h3 style="margin-bottom: 15px;">Tải lên tài liệu</h3>
+                        <label for="file-upload-modal" class="upload-button">Chọn tệp tin</label>
                         <input type="file" id="file-upload-modal" accept=".pdf" style="display: none;">
-                        <p style="font-size: 14px; color: #888; margin-top: 10px;">Allowed file extension: .pdf</p>
+                        <p style="font-size: 14px; color: #888; margin-top: 10px;">Định dạng cho phép: .pdf</p>
                     </div>
-                    <!-- Right side: Link Input -->
+                    <!-- Bên phải: dùng link-->
                     <div class="link-section" style="width: 45%; text-align: center;">
-                        <h3 style="margin-bottom: 15px;">Submit Website Link</h3>
-                        <input type="text" id="web-url-modal" style="width: 90%;" placeholder="Enter Website URL" class="input-url">
-                        <button class="submit-button" onclick="submitUrl()">Submit Link</button>
+                        <h3 style="margin-bottom: 15px;">Nhập đường dẫn</h3>
+                        <input type="text" id="web-url-modal" style="width: 90%;" placeholder="https://...." class="input-url">
+                        <button class="submit-button" onclick="submitUrl()">Xác nhận</button>
                     </div>
                 </div>
             </div>
         </div>
         <div id="file-list">
-            {% for file in file_list %}
-            <div id="fileId" class="file-item">
-                <div class="file-name">{{ file }}</div>
+            {% for secure_file, title in zip (secured_file_list, title_list) %} 
+            <!-- title = [aaa.pdf, link]-->
+             <!-- secure_file_list = [secure(aaa.pdf), secure(link)] -->
+            <div id="{{ secure_file }}" class="file-item">
+                <div class="file-name">{{ title }}</div>
                 <div class="file-actions">
-                    <button class="file-action" onclick="summarize('{{ file }}')">Summarize</button>
-                    <button class="file-action" onclick="deleteFile('{{ file }}')">Delete</button>
+                    <button class="file-action" onclick="summarize('{{ secure_file }}')">Tóm tắt</button>
+                    <button class="file-action" onclick="deleteFile('{{ secure_file }}')">Xóa</button>
                 </div>
             </div>
             {% endfor %}
@@ -52,185 +54,10 @@
         <h2>Chat</h2>
         <div id="chat-messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="user-input" placeholder="Type your message...">
-            <button id="send-button" onclick="sendMessage()">Send</button>
+            <input type="text" id="user-input" placeholder="Nhập câu hỏi.......">
+            <button id="send-button" onclick="sendMessage()">Gửi</button>
         </div>
     </div>
-
-    <script>
-        $(document).ready(function() {
-            $('#file-upload').change(function() {
-                uploadFile(this.files[0]);
-            });
-
-            $('#user-input').keypress(function(e) {
-                if(e.which == 13) {
-                    sendMessage();
-                    return false;
-                }
-            });
-        });
-        // Get the modal
-        var modal = document.getElementById("uploadModal");
-        // Get the button that opens the modal
-        var btn = document.getElementById("uploadBtn");
-        // Get the <span> element that closes the modal
-        var span = document.getElementsByClassName("close")[0];
-        // Open the modal when clicking the upload button
-        btn.onclick = function() {
-            modal.style.display = "block";
-        }
-        // Close the modal
-        span.onclick = function() {
-            modal.style.display = "none";
-        }
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-        // Handle file upload
-        document.getElementById("file-upload-modal").onchange = function() {
-            var file = this.files[0];
-            if (file) {
-                var formData = new FormData();
-                formData.append('file', file);
-
-                $.ajax({
-                    url: '/upload',  // Backend route for uploading files
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(response) {
-                        if (response.success) {
-                            addFileToList(response.filename, response.filename);
-                        } else {
-                            alert('Error: ' + response.error);
-                        }
-                    }
-                });
-                modal.style.display = "none";  // Close modal after upload
-            }
-        }
-
-        // Handle URL submission
-        function submitUrl() {
-            url = document.getElementById("web-url-modal").value;
-            if (url.trim() === '') return;
-
-            $.ajax({
-                url: '/process-url',  // Backend route for processing URLs
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ url: url }),
-                success: function(response) {
-                    if (response.success) {
-                        addFileToList(response.filename, response.url);
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                }
-            });
-            modal.style.display = "none";  // Close modal after submission
-        }
-
-        // Add the uploaded or URL-submitted file to the list dynamically
-        function addFileToList(filename, rawName) {
-            const fileId = `file-${filename.replace(/\./g, '-')}`;
-            $('#file-list').append(`
-                <div id="${fileId}" class="file-item">
-                    <div class="file-name">${rawName}</div>
-                    <div class="file-actions">
-                        <button class="file-action" onclick="summarize('${filename}')">Summarize</button>
-                        <button class="file-action" onclick="deleteFile('${filename}')")">Delete</button>
-                    </div>
-                </div>
-            `);
-        }
-        // function uploadFile(file) {
-        //     var formData = new FormData();
-        //     formData.append('file', file);
-
-        //     $.ajax({
-        //         url: '/upload',
-        //         type: 'POST',
-        //         data: formData,
-        //         contentType: false,
-        //         processData: false,
-        //         success: function(response) {
-        //             if(response.success) {
-        //                 addFileToList(response.filename);
-        //             } else {
-        //                 alert('Error: ' + response.error);
-        //             }
-        //         }
-        //     });
-        // }
-
-        // function addFileToList(filename) {
-        //     const fileId = `file-${filename.replace(/\./g, '-')}`;
-        //     $('#file-list').append(`
-        //         <div id="${fileId}" class="file-item">
-        //             ${filename}
-        //             <button onclick="summarize('${filename}')">Summarize</button>
-        //             <button onclick="deleteFile('${filename}')">Delete</button>
-        //         </div>
-        //     `);
-        // }
-
-        function summarize(filename) {
-            $.ajax({
-                url: '/summarize',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({filename: filename}),
-                success: function(response) {
-                    if (response.summary) {
-                        alert('Summary: ' + response.summary);
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                }
-            });
-        }
-
-        function deleteFile(filename) {
-            if (confirm(`Are you sure you want to delete ${filename}?`)) {
-                $.ajax({
-                    url: '/delete',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({filename: filename}),
-                    success: function(response) {
-                        if (response.success) {
-                            $(`#file-${filename.replace(/\./g, '-')}`).remove();
-                        } else {
-                            alert('Error: ' + response.error);
-                        }
-                    }
-                });
-            }
-        }
-
-        function sendMessage() {
-            var message = $('#user-input').val();
-            if (message.trim() === '') return;
-
-            $('#chat-messages').append(`<div class="message user-message">${message}</div>`);
-            $('#user-input').val('');
-
-            $.ajax({
-                url: '/chat',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({question: message}),
-                success: function(response) {
-                    $('#chat-messages').append(`<div class="message bot-message">${response.answer}</div>`);
-                    $('#chat-messages').scrollTop($('#chat-messages')[0].scrollHeight);
-                }
-            });
-        }
-    </script>
+    <script src="{{ url_for('static', filename='script_chat.js') }}"></script>
 </body>
 </html>

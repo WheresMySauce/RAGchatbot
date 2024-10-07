@@ -2,6 +2,7 @@ $(document).ready(function() {
     $('#file-upload').change(function() {
         uploadFile(this.files[0]);
     });
+
     $('#user-input').keypress(function(e) {
         if(e.which == 13) {
             sendMessage();
@@ -9,18 +10,17 @@ $(document).ready(function() {
         }
     });
 });
-
-// Get the modal
+// lấy giá trị model/ cửa sổ 
 var modal = document.getElementById("uploadModal");
-// Get the button that opens the modal
+// lấy giá trị button
 var btn = document.getElementById("uploadBtn");
-// Get the <span> element that closes the modal
+// lấy giá trị span (x) đóng model)
 var span = document.getElementsByClassName("close")[0];
 // Open the modal when clicking the upload button
 btn.onclick = function() {
     modal.style.display = "block";
 }
-// Close the modal
+// đóng modal khi click vào nút (x)
 span.onclick = function() {
     modal.style.display = "none";
 }
@@ -29,68 +29,82 @@ window.onclick = function(event) {
         modal.style.display = "none";
     }
 }
-// Handle file upload
+// Tải file lên server
 document.getElementById("file-upload-modal").onchange = function() {
     var file = this.files[0];
     if (file) {
         var formData = new FormData();
         formData.append('file', file);
-
+        modal.style.display = "none";  // Xóa modal sau khi tải lên
+        $('#uploadBtn').prop('disabled', true);
+        $('#uploadBtn').css('background-color', 'gray');
+        $('#uploadBtn').text('Đang Xử lí...');
         $.ajax({
-            url: '/upload',  // Backend route for uploading files
+            url: '/upload',  // route để xử lí file pdf
             type: 'POST',
             data: formData,
             contentType: false,
-            processData: false, // xong phần gửi về app.py
-            success: function(response) { // lúc app.py gửi  dữ liệu về lại 
+            processData: false,
+            success: function(response) {
                 if (response.success) {
-                    addFileToList(response.filename, response.filename);
+                    $('#uploadBtn').prop('disabled', false);
+                    $('#uploadBtn').css('background-color', '');
+                    $('#uploadBtn').text('Thêm nguồn')
+                    addFileToList(response.filename, response.raw_filename);
                 } else {
                     alert('Error: ' + response.error);
                 }
             }
         });
-        modal.style.display = "none";  // Close modal after upload
+
     }
 }
 
-// Handle URL submission
+// Xử  lí link 
 function submitUrl() {
     url = document.getElementById("web-url-modal").value;
     if (url.trim() === '') return;
-
+    console.log(url);
+    modal.style.display = "none";
+    $('#uploadBtn').prop('disabled', true);
+    $('#uploadBtn').css('background-color', 'gray');
+    $('#uploadBtn').text('Đang Xử lí...');
     $.ajax({
-        url: '/process-url',  // Backend route for processing URLs
+        url: '/process-url',  // route xử lí link
         type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ url: url }),// xong phần gửi về app.py
-        success: function(response) { //làm gì khi nhận lại kết quả 
+        data: JSON.stringify({ url: url }), //https://www.wikipedia.org/....
+        success: function(response) {
             if (response.success) {
-                addFileToList(response.filename, response.url);
+                // console.log(response.title);
+                // console.log(response.filename);
+                // console.log(response.url);
+                $('#uploadBtn').prop('disabled', false);
+                $('#uploadBtn').css('background-color', '');
+                $('#uploadBtn').text('Thêm nguồn')
+                addFileToList(response.filename, response.title);
             } else {
                 alert('Error: ' + response.error);
             }
         }
     });
-    modal.style.display = "none";  // Close modal after submission
 }
 
-// Add the uploaded or URL-submitted file to the list dynamically
+// Thêm tên file vào danh sách (cột bên trái)
 function addFileToList(filename, rawName) {
-    console.log(filename);
-    console.log(rawName);
-    const fileId = `file-${filename.replace(/\./g, '-')}`;
+    // const fileId = `file-${filename.replace(/\./g, '-')}`;
     $('#file-list').append(`
-        <div id="${fileId}" class="file-item">
+        <div id="${filename}" class="file-item">
             <div class="file-name">${rawName}</div>
             <div class="file-actions">
-                <button class="file-action" onclick="summarize('${filename}')">Summarize</button>
-                <button class="file-action" onclick="deleteFile('${filename}')")">Delete</button>
+                <button class="file-action" onclick="summarize('${filename}')">Tóm tắt</button>
+                <button class="file-action" onclick="deleteFile('${filename}')")">Xóa</button>
             </div>
         </div>
     `);
 }
 
+// Nút tóm tắt
 function summarize(filename) {
     $.ajax({
         url: '/summarize',
@@ -99,24 +113,29 @@ function summarize(filename) {
         data: JSON.stringify({filename: filename}),
         success: function(response) {
             if (response.summary) {
-                alert('Summary: ' + response.summary);
+                alert(response.summary);
             } else {
-                alert('Error: ' + response.error);
+                alert('Lỗi: ' + response.error);
             }
         }
     });
 }
 
+// Nút xóa file trong danh sách 
 function deleteFile(filename) {
-    if (confirm(`Are you sure you want to delete ${filename}?`)) {
+    //xóa .txt trong filename
+    // var rawFilename = filename.replace('.txt', '');
+    // if (confirm(`Bạn có chắc muốn xóa tài liệu ${rawFilename} ?`)) {
+    if (confirm(`Bạn có chắc muốn xóa tài liệu này?`)) {
         $.ajax({
             url: '/delete',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({filename: filename}),
             success: function(response) {
+                console.log(response.filename);
                 if (response.success) {
-                    $(`#file-${filename.replace(/\./g, '-')}`).remove();
+                    $(`[id='${response.filename}']`).remove();
                 } else {
                     alert('Error: ' + response.error);
                 }
@@ -125,6 +144,7 @@ function deleteFile(filename) {
     }
 }
 
+// Gửi tin nhắn
 function sendMessage() {
     var message = $('#user-input').val();
     if (message.trim() === '') return;
