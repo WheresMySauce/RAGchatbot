@@ -15,9 +15,8 @@
                 <div class="new-notebook-icon">+</div>
                 <h2>Tạo chủ đề mới</h2>
             </div>
-            
             {% for session_id, session_name in sessions.items() %}
-                {% if loop.index > 1 %}
+                {% if loop.index > 1 and session_id not in hidden_sessions_id %}
                 <div class="notebook" onclick="openSession('{{ session_id }}')">
                     <h2>{{ session_name }}</h2>
                     <button class="delete-btn" onclick="deleteSession(event, '{{ session_id }}')"></button>

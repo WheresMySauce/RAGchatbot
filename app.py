@@ -32,7 +32,7 @@ os.makedirs(SUMMARY_FOLDER, exist_ok=True)
 # Cac bien de luu tru thong tin tom tat, session (id, ten session)
 summaries = {} #biến để luư đoạn tóm tắt
 sessions = {} # biến để lưu thông tin session (tên session, id session)
-
+hidden_sessions_id = [] # biến để lưu thông tin session bị ẩn (khi xóa session)
 # Chạy session có sẵn (Example )
 sessions['1'] = "Đại Dương"
 # sessions['2'] = "Session 2"
@@ -74,7 +74,8 @@ load_summaries()
 
 @app.route('/') #route mặc định http://127.0.0.1:5000/
 def index():
-    return render_template('session_management.html', sessions=sessions) 
+    return render_template('session_management.html', sessions=sessions,
+                                                    hidden_sessions_id=hidden_sessions_id) 
 #ROUTE NÀO CÓ render_template() thì sẽ trả về 1 file html (GIAO DIỆN)
 
 @app.route('/create_session', methods=['POST']) #http://127.0.0.1:5000/create_session
@@ -89,9 +90,8 @@ def create_session():
 def delete_session():
     data = request.json
     session_id = data.get('session_id')
-    print(session_id)
     if session_id in sessions:
-        # del sessions[session_id]
+        hidden_sessions_id.append(session_id)
         # xóa vector store của session
         shutil.rmtree(f"./vectorstore_{session_id}", ignore_errors=True)
         # Delete all files and summaries for this session
@@ -101,7 +101,7 @@ def delete_session():
         for f in os.listdir(SUMMARY_FOLDER):
             if f.startswith(f"{session_id}_"):
                 os.remove(os.path.join(SUMMARY_FOLDER, f))
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'hidden_sessions_id': hidden_sessions_id})
 
 @app.route('/session/<session_id>')
 # ROUTE ĐỂ HIỂN THỊ GIAO DIỆN CHAT
@@ -128,8 +128,8 @@ def session_page(session_id):
             file_list.append(f.split('_', 1)[1]) #aaa.pdf
             title_list.append(f.split('_', 1)[1]) #aaa.pdf
             secured_file_list.append(secure_filename(f.split('_', 1)[1])) #secure_filename(aaa.pdf)
-    print(file_list)
-    print(secured_file_list)
+    # print(file_list)
+    # print(secured_file_list)
     #file_list = ['aaa.pdf', 'link.txt']
     #secured_file_list = ['secure_filename(aaa.pdf)', 'secure_filename(aaa.pdf)']
     return render_template('chat.html', session_id=session_id,
