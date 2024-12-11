@@ -1,0 +1,76 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.2">
+    <title>{{ session_name }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="{{ url_for('static', filename='styles_chat.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="left-column">
+        <h2 style="color: white;">Tài liệu</h2>
+        <!-- Nút mở cửa sổ thêm nguồn-->
+        <button id="uploadBtn" class="file-upload-label" style="margin-bottom: 10px;">Thêm nguồn</button>
+        <!-- The Modal = cửa sổ  -->
+        <div id="uploadModal" class="modal">
+            <!-- Các thành phần của cửa sổ, 0 liên quan đến trang wweb chính -->
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2 style="text-align: center; margin-bottom: 20px;">Tài lên tệp .pdf hoặc sử dụng đường dẫn website</h2>
+                <div style="display: flex; justify-content: space-between;">
+                    <!-- Bên trái: tải file pdf -->
+                    <div class="upload-section" style="width: 45%; text-align: center;">
+                        <h3 style="margin-bottom: 15px;">Tải lên tài liệu</h3>
+                        <label for="file-upload-modal" class="upload-button">Chọn tệp tin</label>
+                        <input type="file" id="file-upload-modal" accept=".pdf" style="display: none;">
+                        <p style="font-size: 14px; color: #888; margin-top: 10px;">Định dạng cho phép: .pdf</p>
+                    </div>
+                    <!-- Bên phải: dùng link-->
+                    <div class="link-section" style="width: 45%; text-align: center;">
+                        <h3 style="margin-bottom: 15px;">Nhập đường dẫn</h3>
+                        <input type="text" id="web-url-modal" style="width: 90%;" placeholder="https://...." class="input-url">
+                        <button class="submit-button" onclick="submitUrl()">Xác nhận</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="file-list">
+            {% for secure_file, title, is_link, file_list in zip(secured_file_list, title_list, is_link, file_list) %} 
+            <!-- title = [aaa.pdf, link]-->
+             <!-- secure_file_list = [secure(aaa.pdf), secure(link)] -->
+            <div id="{{ secure_file }}" class="file-item">
+                <div class="file-name">
+                    {% if is_link %}
+                        <a href="{{ file_list }}" target="_blank" class="link-icon">{{ title }}</a>
+                    {% else %}
+                        {{ title }}                 
+                    {% endif %}
+                </div>
+                <div class="file-actions">
+                    <button class="file-action" onclick="summarize('{{ secure_file }}')">Tóm tắt</button>
+                    <button class="file-action" onclick="deleteFile('{{ secure_file }}')">Xóa</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="summaryModal" class="modal">
+            <div class="modal-content">
+              <h2>Tóm tắt tài liệu</h2>
+              <div id="summaryContent"></div>
+              <button id="closeSummaryModal" class="close-button">Đóng</button>
+            </div>
+        </div>
+    </div>
+    <div class="right-column">
+        <h2>Chat</h2>
+        <div id="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="user-input" placeholder="Nhập câu hỏi......." required> 
+            <button id="send-button" onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script_chat.js') }}"></script>
+</body>
+</html>
